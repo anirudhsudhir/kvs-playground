@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File};
-use std::io::prelude::*;
+// use std::fs::{self, File};
+// use std::io::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 enum Direction {
@@ -28,11 +28,12 @@ fn main() {
         },
     ];
 
-    let moves_json = serde_json::to_string(&moves).unwrap();
-    let mut file_write = File::create("data.json").unwrap();
-    file_write.write_all(moves_json.as_bytes()).unwrap();
-
-    let sen = fs::read_to_string("data.json").unwrap();
-    let moves_read: Vec<Move> = serde_json::from_str(&sen).unwrap();
-    println!("{:?}", moves_read);
+    let mut moves_ron = Vec::new();
+    ron::ser::to_writer(&mut moves_ron, &moves).unwrap();
+    let moves_read: Vec<Move> = ron::de::from_bytes(&moves_ron).unwrap();
+    println!(
+        "Deserialized: {:?}, Ron: {:?}",
+        moves_read,
+        std::str::from_utf8(&moves_ron).unwrap()
+    );
 }
