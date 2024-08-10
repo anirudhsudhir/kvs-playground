@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File};
-use std::io::{prelude::*, BufWriter, Cursor};
-use std::path::Path;
+use std::io::Cursor;
 
 #[derive(Debug, Serialize, Deserialize)]
 enum Direction {
@@ -24,21 +22,12 @@ fn main() {
     })
     .unwrap();
 
-    {
-        if Path::exists(Path::new("data.bson")) {
-            fs::remove_file("data.bson").unwrap();
-        }
-        let file = File::create_new("data.bson").unwrap();
-        let mut writer = BufWriter::new(file);
+    let mut buf = Vec::with_capacity(1000);
 
-        for _ in 1..1000 {
-            writer.write_all(&vals).unwrap();
-        }
+    for _ in 1..1000 {
+        buf.extend_from_slice(&vals.clone());
     }
 
-    let mut file = File::open("data.bson").unwrap();
-    let mut buf = Vec::new();
-    file.read_to_end(&mut buf).unwrap();
     let mut reader = Cursor::new(buf);
 
     let mut parsed_bson: Vec<bson::Bson> = Vec::with_capacity(1000);
