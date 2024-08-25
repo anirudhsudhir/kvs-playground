@@ -1,3 +1,6 @@
 /target
+playe-rs
+
 data.json
 data.bson
+*.db

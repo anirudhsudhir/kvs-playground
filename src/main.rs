@@ -1,78 +1,57 @@
-use serde::{Deserialize, Serialize};
-use std::fs::{self, File};
-use std::io::{prelude::*, BufWriter, Cursor};
-use std::path::Path;
+use rmp_serde::{self, decode, encode};
 
-#[derive(Debug, Serialize, Deserialize)]
-enum Direction {
-    Up(String),
-    Down(bool),
-    Left(char),
-    Right,
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fmt;
+use std::fs::{File, OpenOptions};
+use std::io::{self, BufReader, Seek, SeekFrom, Write};
+use std::path;
+
+#[derive(Debug)]
+pub enum KvsError {
+    IoError(io::Error),
+    SerializationError(encode::Error),
+    DeserializationError(decode::Error),
+    MapError(String),
+    KeyNotFoundError,
+    CliError(String),
+    OtherError(String),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Move {
-    direction: Direction,
-    positions: u32,
+enum OperationType {
+    Set(String, String),
+    Rm(String),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct LogCommand {
+    operation: OperationType,
 }
 
 fn main() {
-    let vals_up = Move {
-        direction: Direction::Up(String::from(
-            "looooooooooong stringgggggg vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv",
-        )),
-        positions: 2,
+    let cmd = LogCommand {
+        operation: OperationType::Set(
+            String::from("this is a key"),
+            String::from("This is a value"),
+        ),
     };
 
-    let mut flex_serial_up = flexbuffers::FlexbufferSerializer::new();
-    vals_up.serialize(&mut flex_serial_up).unwrap();
+    let bson_data = bson::to_vec(&cmd).unwrap();
+    let msg_pack_data = rmp_serde::to_vec(&cmd).unwrap();
 
-    let vals_down = Move {
-        direction: Direction::Down(true),
-        positions: 100,
-    };
+    let mut msg_pack_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("./msg_pack.db")
+        .unwrap();
 
-    let mut flex_serial_down = flexbuffers::FlexbufferSerializer::new();
-    vals_down.serialize(&mut flex_serial_down).unwrap();
-    {
-        // if Path::exists(Path::new("data")) {
-        //     fs::remove_file("data").unwrap();
-        // }
-        let file = fs::OpenOptions::new().append(true).open("data").unwrap();
-        let mut writer = BufWriter::new(file);
+    let mut bson_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("./bson.db")
+        .unwrap();
 
-        for _ in 1..3 {
-            let temp = flex_serial_up.view();
-            println!("len = {}", temp.len());
-            writer.write_all(temp).unwrap();
-        }
-        for _ in 1..3 {
-            let temp = flex_serial_up.view();
-            println!("len = {}", temp.len());
-            writer.write_all(temp).unwrap();
-        }
-        for _ in 1..3 {
-            let temp = flex_serial_up.view();
-            println!("len = {}", temp.len());
-            writer.write_all(temp).unwrap();
-        }
-    }
-
-    // let mut vals: Vec<Move> = Vec::new();
-    //
-    // let mut file = File::open("data").unwrap();
-    // let mut buf = Vec::new();
-    // file.read_to_end(&mut buf).unwrap();
-    // let mut reader = Cursor::new(buf);
-    // // let read = buf.as_slice();
-    //
-    // // reader.
-    //
-    // while let Ok(move_val) = flexbuffers::Reader::get_root(reader) {
-    //     vals.push(Move::deserialize(move_val).unwrap());
-    //     reader.seek()
-    // }
-    //
-    // println!("{:?}", vals);
+    msg_pack_file.write_all(&msg_pack_data).unwrap();
+    bson_file.write_all(&bson_data).unwrap();
 }
