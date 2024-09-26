@@ -1,11 +1,8 @@
 use rmp_serde::{self, decode, encode};
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt;
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufReader, Seek, SeekFrom, Write};
-use std::path;
+use std::fs::OpenOptions;
+use std::io::{self, Write};
 
 #[derive(Debug)]
 pub enum KvsError {
